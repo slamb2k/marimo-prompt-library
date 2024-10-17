@@ -1,0 +1,61 @@
+/* Load from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@100..900&family=Sixtyfour+Convergence&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap');
+
+:root {
+  --marimo-heading-font: 'Outfit', sans-serif;
+  --marimo-monospace-font: 'Source Code Pro', monospace;
+  --marimo-text-font: 'Outfit', sans-serif;
+  background-color: rgb(13, 17, 23);
+}
+
+code {
+  white-space : pre-wrap !important;
+}
+
+.prose :where(pre):not(:where([class~=not-prose],[class~=not-prose] *)) {
+  background-color: light-dark(rgb(245, 242, 248), black);
+  border-radius: .375rem;
+  color: inherit;
+  font-size: .875em;
+  font-weight: 400;
+  line-height: 1.7142857;
+  margin-bottom: 1.7142857em;
+  margin-top: 1.7142857em;
+  overflow-x: auto;
+  padding-inline-end:1.1428571em;padding-bottom: .8571429em;
+  padding-top: .8571429em;
+  padding-inline-start:1.1428571em
+}
+
+.prose :where(table):not(:where([class~=not-prose],[class~=not-prose] *)) {
+  font-size: 1.2em;
+  line-height: 1.7142857;
+  margin-bottom: 2em;
+  margin-top: 2em;
+  table-layout: auto;
+  width: 100%
+}
+
+.prose :where(h1):not(:where([class~=not-prose],[class~=not-prose] *)) {
+  color: var(--tw-prose-headings);
+  font-size: 2.25em;
+  font-weight: 800;
+  line-height: 1.1111111;
+  margin-bottom: .45em;
+  margin-top: 0
+}
+
+.prose :where(hr):not(:where([class~=not-prose],[class~=not-prose] *)) {
+  border-color: var(--tw-prose-hr);
+  border-top-width: 1px;
+  margin-bottom: 3em;
+  margin-top: 1.2em;
+}
+
+/* Increase paragraph font size and change color */
+.paragraph {
+  font-size: 1.2rem;
+  color: light-dark(navy, pink);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}

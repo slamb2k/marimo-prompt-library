@@ -22,6 +22,8 @@ dependencies = [
     "llm-ollama>=0.5.0",
     "pyperclip>=1.9.0",
     "llm-gemini>=0.1a5",
+    "azure-identity>=1.18.0",
+    "snakemd>=2.2.0",
 ]
 
 [build-system]

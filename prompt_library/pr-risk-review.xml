@@ -1,0 +1,47 @@
+<purpose>
+    Given a set of code changes, look for any security risks primarily in the indexed documentation but you can use your own knowledge. 
+    For each risk discovered, provide a description with citations and provide solutions that will mitigate it. Ensure the solution has a description, a recommended fix, the existing code and the new code.
+</purpose>
+
+<instructions>
+    <instruction>YOU MUST GENERATE CITATIONS TO ANY EXTERNAL DOCUMENTS USED IN YOUR RESPONSE. Use the [doc#] format. e.g. [doc1], [doc2], etc.</instruction>
+    <instruction>Review the code changes provided in the diff-of-code block and return details of any security risks found.</instruction>
+    <instruction>The code changes have been be provided as a diff in the unified (or unidiff) format.</instruction>
+    <instruction>Respond with valid, parseable JSON using the output-format structure provided. Do not include any other text.</instruction>  
+    <instruction>Specify the title, severity, description, file, startingLine, citation, recommendation, existingCode, updatedCode for each AIAssistantRisk.</instruction>
+    <instruction>The recommendation should be a short explanation of the recommended code update.</instruction>
+    <instruction>The existingCode should be the existing code related to the risk.</instruction>
+    <instruction>The updatedCode should be the code change to address the risk.</instruction>
+    <instruction>When searching for risks, initially prioritise critical severity items. Then search for high severity, then medium severity and finally low.</instruction>
+    <instruction>The final response should be a AIAssistantRisks object, which will contain an array of AIAssistantRisk objects that each contain the risk and suggested update details.</instruction>
+</instructions>
+
+<diff-of-code>
+    <![CDATA[
+    {{diff-of-code}}
+    ]]>
+</diff-of-code>
+
+<output-format>
+    <![CDATA[
+interface AIAssistantRisk {
+    title: string; // a short title for the security risk
+    description: string; // describe the security risk in a few sentences.
+    file: string; // path to the file
+    startingLine: number; // 1-based line number
+    citation: string; // the citation or reference to external documentation.
+    recommendation: string; // describe the recommended update.
+    existingCode: string; // the existing code related to the risk.
+    updatedCode: string; // the code changed to address the risk.
+    // critical - This release should not be approved as these risks are serious
+    // high - concrete risks with a reasonable chance of causing customer impact or security concerns
+    // medium - items of concern that should be reviewed by those with more context, though not concrete enough to be high
+    // low - likely no customer impact, though improvements are possible
+    severity: "critical" | "high" | "medium" | "low";
+}
+
+interface AIAssistantRisks {
+    risks: AIAssistantRisk[];
+}
+    ]]>
+</output-format>
