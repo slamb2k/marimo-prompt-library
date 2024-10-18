@@ -9,7 +9,7 @@ The app is designed to be user-friendly and accessible to users with no prior ex
 
 import marimo
 
-__generated_with = "0.9.9"
+__generated_with = "0.9.10"
 app = marimo.App(width="medium", app_title="Viracity", css_file="vira.css")
 
 
@@ -107,7 +107,7 @@ def __(mo, prompt_styles, selected_prompt):
         [
             mo.md("""
             <br/>
-            
+
             ## Prompt Template
             """),
             mo.accordion(
@@ -367,8 +367,8 @@ def __(client, context_filled_prompt, mo, model_dropdown):
     # Run the prompt through the model using context_filled_prompt
     with mo.status.spinner(title="Running prompt..."):
         completion = client.chat.completions.create(
-            model="gpt-4o",
-            max_tokens=4096,
+            model="gpt-4o-mini",
+            max_tokens=16384,
             response_format={ "type": "json_object" },
             temperature=0.0000001,
             top_p=0.001,
@@ -389,7 +389,8 @@ def __(client, context_filled_prompt, mo, model_dropdown):
                             "in_scope": False,
                             "strictness": 3,
                             "top_n_documents": 11,
-                            "query_type": "vector_semantic_hybrid",
+                            #"query_type": "vector_semantic_hybrid",
+                            "query_type": "vector",
                             "embedding_dependency": {
                                 "type": "deployment_name",
                                 "deployment_name": "text-embedding-ada-002",
@@ -435,7 +436,7 @@ def __(client, context_filled_prompt, mo, model_dropdown):
         citation_content = citation_content.replace("\\","\\\\")
         citation_content = citation_content.replace("SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME,SE_BATCH_LOGON_NAME,SE_DENY_NETWORK_LOGON_NAME,SE_INTERACTIVE_LOGON_NAME",
                                                     "SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME, SE_BATCH_LOGON_NAME, SE_DENY_NETWORK_LOGON_NAME, SE_INTERACTIVE_LOGON_NAME")
-        
+
 
         citation_detail = f"<details><summary>{title} - [View File]({url})</summary><br/><div style='padding: 20px 30px 30px 30px;'>{citation_content}</div></details>"
 
