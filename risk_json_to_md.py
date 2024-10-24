@@ -35,7 +35,6 @@ def json_to_markdown(data):
         updated_code = risk["updatedCode"]
 
         doc.add_heading(risk["title"], level=1)
-        #doc.add_paragraph(bold_title)
 
         header = ["**Severity**\t", severity]
         rows = [
@@ -43,7 +42,6 @@ def json_to_markdown(data):
             ["**File**", file],
             ["**Line**", starting_line],
             ["**Reference**", reference]
-            
         ]
         align = [
             snakemd.Table.Align.LEFT,
@@ -145,74 +143,26 @@ def get_example_code_files():
 def get_example_diff():
     """Gets an example diff payload"""
 
-    diff = r"""diff --git a/src/ServiceConfig.ini b/src/ServiceConfig.ini
-    new file mode 100644
-    index 0000000..68cf1fa
-    --- /dev/null
-    +++ b/src/ServiceConfig.ini
-    @@ -0,0 +1,62 @@
-    +[Service]
-    +Disabled=true
-    +RunAsAccount=PhyNet
-    +RequiredDataFolders=networkconfigs,RegionalizationSettingsSdp
-    +
-    +; Test
-    +ClusterAlias:PublicPilotFish,Environment:NetSec-Test-*,MF:Security$Disabled=false
-    +
-    +; PPE
-    +Environment:NetSec-PPE-SN5N$Disabled=true
-    +ClusterAlias:PublicPilotFish,Environment:NetSec-PPE-*,MF:Security$Disabled=false
-    +ClusterAlias:PublicPilotFish,Environment:Network-PPE-*,MF:Security$Disabled=false
-    +
-    +; Public
-    +Cluster:BY01P,Environment:NetSec-Prod-BY01P,MF:Security$Disabled=false
-    +Cluster:SJC05P,Environment:NetSec-Prod-SJC05P,MF:Security$Disabled=false
-    +
-    +; DAS is not used in national clouds or AGCs.
-    +
-    +[Flattener.FileList]
-    +%DATADIR%/RegionalizationSettingsSdp/*=
-    +
-    +[ServiceAccount]
-    +Groups=administrators
-    +Privileges=SeAuditPrivilege
-    +EnableProfileGeneration=true
-    +
-    +[Firewall_InBound]
-    +DeviceAuthorizationHttp=TCP/80:APFW\Backend
-    +DeviceAuthorizationHttps=TCP/443:APFW\Backend
-    +
-    +[UrlAcls]
-    +;Name         - Urls
-    +;Description  - Urls that need to be acled for.
-    +;Value        - The urls that service account would acl for
-    +Urls=https://+:443/deviceauthorization
-    +
-    +[Certs]
-    +;Name         - port numbers
-    +;Description  - Cert that need to be binded, note that only appki cert is supported for now.
-    +;Value        - The certs that need to be bind to certain port.
-    +443=appki
-    +
-    +[AutopilotTests]
-    +; https://eng.ms/docs/products/autopilot/autopilot/xping/serviceconfigini-options-for-xping
-    +CloudMetricMonitoringAccount=azaaamdm
-    + 
-    +TestConfigurationFiles=DeviceAuthorizationHttpKeepAlive.xml
-    +
-    +; for BS and DECOMM machine functions which runs services on-demand tests/heartbeats are disabled
-    +MF:BS$TestConfigurationFiles=
-    +MF:DECOMM$TestConfigurationFiles=
-    +
-    +[DataSyncRules]
-    +APGoldNetwork=VE/Autopilot-Autopilot-VE/SDAPGOLD/Network,600
-    +
-    +[Feature]
-    +DependOn=DsmsSecretsSoft
-    +
-    +[Feature.DependOn.DsmsSecretsSoft]
-    +Parameter=-secretConfigurationFile SecretsConfiguration.json -secretDeploymentFile SecretsDeployment.ini.flattened.ini -cacheLookup disable
-    +Environment:NetSec-Test-*$Parameter=-secretConfigurationFile SecretsConfigurationXPME.json -secretDeploymentFile SecretsDeployment.ini.flattened.ini -cacheLookup disable
-    """
+    diff = r"""[Service]
+Disabled=false
+RunAsAccount=System
+
+[ServiceAccount]
+Groups=administrators
+
+[JobObjectLimit]
+JobMemoryLimit=1073741824
+ProcessorRateControlHardCapPercentage=30
+
+[Firewall_Inbound]
+MessageBus=TCP/12000,12002:APFW\Internet
+MessageBusInstance=TCP/10600-10620:APFW\Internet
+SdnGateway=TCP/9000-9003,10001-10002:APFW\Internet
+MockHost=TCP/18192:APFW\Internet
+MockHostManager=TCP/18193:APFW\Internet
+HostGateway=TCP/8570-8573:APFW\Internet
+FlowService=UDP/8666:APFW\Internet
+V1Gw=TCP/8550-8554:APFW\Internet
+MuxProber=UDP/20000:APFW\Internet"""
 
     return diff

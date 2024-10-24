@@ -106,7 +106,6 @@ def __(mo, prompt_styles, selected_prompt):
     prompt_template = mo.vstack(
         [
             mo.md("""
-            <br/>
 
             ## Prompt Template
             """),
@@ -128,10 +127,10 @@ def __(mo, prompt_styles, selected_prompt):
 def __(map_prompt_library, mo):
     request_args = mo.ui.dictionary(
         {
-            "max_tokens": mo.ui.number(0,4096,128,16),
-            "temperature": mo.ui.slider(0,1,0.05,0.1,show_value=True),
-            "top_p": mo.ui.slider(0,1,0.05,0.1,show_value=True),
-            "n": mo.ui.slider(1,128,1,1,show_value=True),
+            "max_tokens": mo.ui.number(0,16384,128,3800),
+            "temperature": mo.ui.slider(0,1,0.05,0.0000001,show_value=True),
+            "top_p": mo.ui.slider(0,1,0.05,0.001,show_value=True),
+            "seed": mo.ui.number(1,100,1,42),
             "presence_penalty": mo.ui.slider(-2,2,1,0,show_value=True),
             "frequency_penalty": mo.ui.slider(-2,2,1,0,show_value=True)
         }
@@ -139,18 +138,7 @@ def __(map_prompt_library, mo):
 
     selected_prompt_name = "pr-risk-review.xml"
     selected_prompt = map_prompt_library[selected_prompt_name]
-
-    prompt_args = mo.ui.dictionary(
-        {
-            "max_tokens": mo.ui.number(0,4096,128,16),
-            "temperature": mo.ui.slider(0,1,0.05,0.1,show_value=True),
-            "top_p": mo.ui.slider(0,1,0.05,0.1,show_value=True),
-            "n": mo.ui.slider(1,128,1,1,show_value=True),
-            "presence_penalty": mo.ui.slider(-2,2,1,0,show_value=True),
-            "frequency_penalty": mo.ui.slider(-2,2,1,0,show_value=True)
-        }
-    )
-    return prompt_args, request_args, selected_prompt, selected_prompt_name
+    return request_args, selected_prompt, selected_prompt_name
 
 
 @app.cell
@@ -189,40 +177,38 @@ def __(mo, models, services):
     service_dropdown = mo.ui.dropdown(
         options=services,
         label="Select an AI Service",
-        value="aoai-standard",
+        value="aoai-on-your-data",
     )
     model_dropdown = mo.ui.dropdown(
         options=models,
         label="Select an LLM Model",
-        value="gpt-4o-latest",
+        value="gpt-4o-mini",
     )
     return model_dropdown, service_dropdown
 
 
 @app.cell
 def __(mo):
-    inscope_check = mo.ui.checkbox(
-        label="Only indexed docs",
+    on_your_data_args = mo.ui.dictionary(
+        {
+            "in_scope": mo.ui.checkbox(value=True),
+            "strictness": mo.ui.slider(1,5,1),
+            "top_n": mo.ui.slider(1,128,1,11,show_value=True),
+            "allow_partial_result": mo.ui.checkbox(value=True),
+            "show_citation_content": mo.ui.checkbox(value=True),
+        }
     )
-
-    strictness_slider = mo.ui.slider(
-        start=1,
-        stop=5,
-        step=1,
-        label="Strictness",
-    )
-    return inscope_check, strictness_slider
+    return (on_your_data_args,)
 
 
 @app.cell
 def __(
-    inscope_check,
     mo,
     model_dropdown,
+    on_your_data_args,
     placeholder_array,
     request_args,
     service_dropdown,
-    strictness_slider,
 ):
     tab1 = mo.hstack(
       [request_args, request_args.value],
@@ -233,12 +219,15 @@ def __(
 
     tab3 = mo.vstack([service_dropdown, model_dropdown])
 
-    tab4 = mo.vstack([inscope_check, strictness_slider])
+    tab4 = mo.hstack(
+      [on_your_data_args, on_your_data_args.value],
+      justify="space-between"
+    )
     return tab1, tab2, tab3, tab4
 
 
 @app.cell
-def __(mo, tab1, tab2, tab3, tab4):
+def __(mo, on_your_data_args, request_args, tab1, tab2, tab3, tab4):
     tabs = mo.ui.tabs(
         {
             "LLM Params": tab1,
@@ -248,45 +237,43 @@ def __(mo, tab1, tab2, tab3, tab4):
         }
     )
 
+    prompt_form = (
+        mo.md(
+            r"""
+            {tabs}
+            """
+        )
+        .batch(
+            tabs=tabs,
+            max_tokens=request_args["max_tokens"],
+            temperature=request_args["temperature"],
+            top_p=request_args["top_p"],
+            seed=request_args["seed"],
+            in_scope=on_your_data_args["in_scope"],
+            strictness=on_your_data_args["strictness"],
+            top_n=on_your_data_args["top_n"],
+            allow_partial_result=on_your_data_args["allow_partial_result"],
+            show_citation_content=on_your_data_args["show_citation_content"],
+        )
+        .form(show_clear_button=True, bordered=False)
+    )
+
     run_cell = mo.vstack(
         [
             mo.md("""
             <br/>
-
             ## Prompt Options
             """),
-            mo.accordion(
-                {
-                    "Expand to view options...": tabs
-                }
-            ),
+            prompt_form,
         ]
     )
 
     run_cell
-    return run_cell, tabs
+    return prompt_form, run_cell, tabs
 
 
 @app.cell
-def __(mo):
-    execute_prompt_button = mo.ui.run_button(label="Run Prompt")
-
-    button_cell = mo.vstack(
-        [
-            mo.md("""
-            <br/>
-            <br/>
-            """),
-            execute_prompt_button,
-        ]
-    )
-
-    button_cell
-    return button_cell, execute_prompt_button
-
-
-@app.cell
-def __(execute_prompt_button, mo, placeholder_array, placeholders):
+def __(mo, placeholder_array, placeholders, prompt_form):
     mo.stop(not placeholder_array.value or not len(placeholder_array.value), "")
 
     # Check if any values are missing
@@ -295,7 +282,7 @@ def __(execute_prompt_button, mo, placeholder_array, placeholders):
 
     # Ensure the 'Proceed' button has been pressed
     mo.stop(
-        not execute_prompt_button.value,
+        mo.stop(not prompt_form.value),
         mo.md("Please press the 'Run Prompt' button to continue."),
     )
 
@@ -338,7 +325,7 @@ def __(context_filled_prompt, mo, prompt_styles):
 
 
 @app.cell
-def __(client, context_filled_prompt, mo, model_dropdown):
+def __(client, context_filled_prompt, mo, prompt_form):
     search_endpoint = "https://virasecurity.search.windows.net"
     search_index = "virasecurity"
     system_prompt_old = """You are an expert assistant specialised in the review of code for potential risks and security issues.
@@ -347,7 +334,7 @@ def __(client, context_filled_prompt, mo, model_dropdown):
     - You are polite, helpful and knowledgeable, but if you don't know the answer, let the user know and do not make up the answer!
     - You are expected to provide a detailed analysis of the code provided and suggest possible fixes.
     - You should search the indexed documents for the most relevant information to provide the best possible response.
-    - The response should be outputted in JSON.
+    - The response should be outputted in VALID JSON and should not include comments. i.e. "// Example of reducing the limit"
     """
 
     system_prompt = """You are an expert in software security and code review, tasked with analyzing the provided code for potential risks and security issues. Your goal is to provide a detailed, well-researched, and actionable security review for the provided source code. Security review should be based on external knowledge as well as retrieved documents.
@@ -355,29 +342,39 @@ def __(client, context_filled_prompt, mo, model_dropdown):
     When the user provides the code changes in the _diff-of-code_, follow these steps:
 
     <thinking>
-    1. Carefully review the provided _diff-of-code_ and search the indexed documents for relevant information that can help you identify potential risks and security issues in the code, as well as suggest possible fixes.
+    1. Carefully review the provided _diff-of-code_ and search for relevant information that can help you identify potential risks and security issues in the code, as well as suggest possible fixes.
     3. Extract the most relevant information from the retrieved documents and organize it in a structured way to support your analysis.
     4. Prioritize suggesting security issues that you are either CONFIDENT of or if it is highly related to the retrieved documents.
     5. Always provide inline citations to any retrieved documents used to support your analysis.
-    6. The response should be outputted in JSON.
+    6. The response should be valid, parseable JSON using the output-format structure provided.
     </thinking>"""
 
+    system_prompt_experiment = """You are an expert in software security and code review, tasked with analyzing the provided code for potential risks and security issues. Your goal is to provide a detailed, well-researched, and actionable security review for the provided source code. Security review should be based on external knowledge as well as retrieved documentations focused on these internal security scenarios: [Eliminate Internet/Corpnet inbound, Tags only, No Firewall Touches, Migrate ServiceConfig.ini Firewall rules to Environment.ini, Default Outbound Deny]
+
+    When the user provides the CODE, ANALYSIS_INSTRUCTIONS, and KNOWLEDGE_BASE, follow these steps:
+
+    <thinking>
+    1. Carefully review the provided CODE and ANALYSIS_INSTRUCTIONS to understand the scope and requirements of the task.
+    2. Thoroughly search the KNOWLEDGE_BASE for relevant information that can help you identify potential risks and security issues in the code, as well as suggest possible fixes.
+    3. Extract the most relevant information from the KNOWLEDGE_BASE and organize it in a structured way to support your analysis.
+    4. Prioritize suggesting security issues that you are either CONFIDENT of or if it is highly related to the retrieved documents.
+    </thinking>"""
+
+    user_prompt = f"{system_prompt}\n{context_filled_prompt}"
+
     # Get the selected model
-    model = model_dropdown.value
+    model = "gpt-4o-mini" #model_dropdown.value
     # Run the prompt through the model using context_filled_prompt
     with mo.status.spinner(title="Running prompt..."):
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            max_tokens=16384,
+            model=model, #"gpt-4o-mini",
+            max_tokens=16384, #prompt_form.value["max_tokens"], #3800,
             response_format={ "type": "json_object" },
-            temperature=0.0000001,
-            top_p=0.001,
-            seed=42,
+            temperature=prompt_form.value["temperature"], #0.0000001,
+            top_p=prompt_form.value["top_p"], #0.001,
+            seed=prompt_form.value["seed"], #42,
             messages=[
-                {
-                    "role": "user",
-                    "content": context_filled_prompt,
-                }
+                {"role": "user", "content": user_prompt}
             ],
             extra_body={
                 "data_sources": [
@@ -386,17 +383,17 @@ def __(client, context_filled_prompt, mo, model_dropdown):
                         "parameters": {
                             "endpoint": search_endpoint,
                             "index_name": search_index,
-                            "in_scope": False,
-                            "strictness": 3,
-                            "top_n_documents": 11,
+                            "in_scope": prompt_form.value["in_scope"], #True,
+                            "strictness": prompt_form.value["strictness"], #3,
+                            "top_n_documents": prompt_form.value["top_n"], #11,
                             #"query_type": "vector_semantic_hybrid",
-                            "query_type": "vector",
+                            "query_type": "vector_simple_hybrid",
                             "embedding_dependency": {
                                 "type": "deployment_name",
                                 "deployment_name": "text-embedding-ada-002",
                             },
                             "semantic_configuration": "default",
-                            "allow_partial_result": True,
+                            "allow_partial_result": prompt_form.value["allow_partial_result"], #True,
                             "authentication": {
                                 "type": "system_assigned_managed_identity"
                             },
@@ -431,12 +428,15 @@ def __(client, context_filled_prompt, mo, model_dropdown):
         # If available, the source url will also be provided.
         citation_reference = f"[doc{citation_index + 1}]"
 
-        citation_content = f"{mo.md(snippet)}".replace("\"", "'")
-        citation_content = citation_content.replace("\\u200b", "")
-        citation_content = citation_content.replace("\\","\\\\")
-        citation_content = citation_content.replace("SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME,SE_BATCH_LOGON_NAME,SE_DENY_NETWORK_LOGON_NAME,SE_INTERACTIVE_LOGON_NAME",
-                                                    "SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME, SE_BATCH_LOGON_NAME, SE_DENY_NETWORK_LOGON_NAME, SE_INTERACTIVE_LOGON_NAME")
+        # Default citation content
+        citation_content = "No citation content available."
 
+        if prompt_form.value["show_citation_content"] == True:
+            citation_content = f"{mo.md(snippet)}".replace("\"", "'")
+            citation_content = citation_content.replace("\\u200b", "")
+            citation_content = citation_content.replace("\\","\\\\")
+            citation_content = citation_content.replace("SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME,SE_BATCH_LOGON_NAME,SE_DENY_NETWORK_LOGON_NAME,SE_INTERACTIVE_LOGON_NAME",
+                                                        "SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME, SE_BATCH_LOGON_NAME, SE_DENY_NETWORK_LOGON_NAME, SE_INTERACTIVE_LOGON_NAME")
 
         citation_detail = f"<details><summary>{title} - [View File]({url})</summary><br/><div style='padding: 20px 30px 30px 30px;'>{citation_content}</div></details>"
 
@@ -459,9 +459,11 @@ def __(client, context_filled_prompt, mo, model_dropdown):
         search_index,
         snippet,
         system_prompt,
+        system_prompt_experiment,
         system_prompt_old,
         title,
         url,
+        user_prompt,
     )
 
 
